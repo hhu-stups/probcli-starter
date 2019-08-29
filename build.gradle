@@ -1,0 +1,133 @@
+plugins {
+	id "de.undercouch.download" version "3.4.3"
+}
+
+apply plugin: 'java'
+apply plugin: 'application'
+apply plugin: 'eclipse'
+apply plugin: 'idea'
+
+
+project.version = '4.0.0-SNAPSHOT'
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+def cliDownloadURL
+if (project.version.endsWith("-SNAPSHOT")) {
+	cliDownloadURL = "https://www3.hhu.de/stups/downloads/prob/cli/nightly"
+} else {
+	cliDownloadURL = "https://www3.hhu.de/stups/downloads/prob/cli/releases/${cli_version}"
+}
+
+
+repositories {
+	mavenCentral()
+	maven {
+		name "sonatype snapshots"
+		url "https://oss.sonatype.org/content/repositories/snapshots"
+	}
+	maven {
+		name "sonatype snapshots"
+		url "https://oss.sonatype.org/content/repositories/releases"
+	}
+}
+
+sourceSets.main.java.srcDirs = ['src/main/java']
+
+
+mainClassName = "de.prob.clistarter.Main"
+
+dependencies {
+	compile group: "com.google.inject", name: "guice", version: "4.2.2" // Apache License 2.0
+	
+	// Logging
+	compile group: "ch.qos.logback", name: "logback-core", version: "1.2.3" // Eclipse Public License 1.0
+	compile group: "ch.qos.logback", name: "logback-classic", version: "1.2.3" // Eclipse Public License 1.0
+	compile group: "org.slf4j", name: "slf4j-api", version: "1.7.25" // MIT License
+}
+
+if (project.hasProperty("probHome")) {
+	allprojects {
+		tasks.withType(JavaForkOptions) {
+			systemProperties["prob.home"] = project.probHome
+		}
+	}
+}
+
+
+final CLI_DOWNLOAD_DIR = file("src/main/resources/de/prob/clistarter/binaries")
+
+task downloadCLIs(type: Download) {
+	final files = []
+	[
+		'leopard64',
+		'linux64',
+		'win64',
+	].each {platform ->
+		files << "probcli_${platform}.zip"
+	}
+	files << "windowslib64.zip"
+
+	src(files.collect {"${cliDownloadURL}/${it}"})
+	dest(CLI_DOWNLOAD_DIR)
+	onlyIfModified(true)
+}
+
+task downloadCSPMFrontend {
+	final cspmfDownloadURL = "https://www3.hhu.de/stups/downloads/cspmf"
+	final files = [
+		'darwin-64': 'leopard64',
+		'linux-64': 'linux64',
+		'windows': 'windows',
+	].collectEntries {cspmfPlatform, probPlatform ->
+		def libName
+		if (cspmfPlatform == "windows") {
+			libName = "cspmf.exe"
+		} else {
+			libName = "cspmf"
+		}
+		// Note: toString is used here to eagerly evaluate the GString (which is not hashed properly otherwise)
+		[("${cspmfDownloadURL}/${cspmfPlatform}/${libName}".toString()): new File(CLI_DOWNLOAD_DIR, "${probPlatform}-${libName}")]
+	}
+
+	doLast {
+		CLI_DOWNLOAD_DIR.mkdirs()
+		files.each {url, target ->
+			download {
+				src(url)
+				dest(target)
+				onlyIfModified(true)
+			}
+			target.executable = true
+		}
+	}
+}
+
+task cleanDownloads(type: Delete) {
+	delete(CLI_DOWNLOAD_DIR)
+}
+clean.dependsOn(cleanDownloads)
+
+
+final BUILD_PROPERTIES = file("src/main/resources/de/prob/clistarter/build.properties")
+
+task createBuildConstants {
+	doFirst {
+		BUILD_PROPERTIES.delete()
+		BUILD_PROPERTIES << "version=${project.version}\n"
+	}
+}
+processResources.dependsOn(createBuildConstants)
+
+task cleanBuildConstants(type: Delete) {
+	delete(BUILD_PROPERTIES)
+}
+clean.dependsOn(cleanBuildConstants)
+
+if (!project.hasProperty("probHome")) {
+	// Automatically download probcli/cspmf, unless a custom PROB_HOME is set
+	processResources.dependsOn(downloadCLIs, downloadCSPMFrontend)
+}
+
+
