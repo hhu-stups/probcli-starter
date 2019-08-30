@@ -116,7 +116,7 @@ public class Main {
 		t.start();
 
 		CliClient client = new CliClient("localhost", 4444);
-		client.start();
+		client.startConnectionWithServer();
 		client.requestCLI();
 	}
 	
