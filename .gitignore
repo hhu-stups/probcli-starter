@@ -1,6 +1,9 @@
+.idea
 .project
 .classpath
-
+*.exe
+build.properties
+binaries/
 
 # Created by https://www.gitignore.io/api/java,maven,gradle,eclipse,intellij
 # Edit at https://www.gitignore.io/?templates=java,maven,gradle,eclipse,intellij

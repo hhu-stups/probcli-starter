@@ -1,16 +1,15 @@
 package de.prob.clistarter;
 
+import com.google.common.base.MoreObjects;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.net.InetAddress;
 import java.net.Socket;
-
-import com.google.common.base.MoreObjects;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class ProBConnection {
 
@@ -135,4 +134,7 @@ public class ProBConnection {
 		return key;
 	}
 
+	public int getPort() {
+		return port;
+	}
 }

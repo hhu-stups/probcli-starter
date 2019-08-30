@@ -1,15 +1,13 @@
 package de.prob.clistarter;
 
+import com.google.common.base.MoreObjects;
+import de.prob.clistarter.exception.CliError;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import com.google.common.base.MoreObjects;
-
-import de.prob.clistarter.exception.CliError;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class ProBInstance {
 
@@ -81,6 +79,10 @@ public class ProBInstance {
 
 	public boolean isShuttingDown() {
 		return shuttingDown;
+	}
+
+	public ProBConnection getConnection() {
+		return connection;
 	}
 
 	@Override
