@@ -3,7 +3,6 @@ package de.prob.clistarter;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import com.google.inject.Stage;
-import de.prob.clistarter.client.CliClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,8 +24,9 @@ public class Main {
 
 	private static final Logger logger = LoggerFactory.getLogger(Main.class);
 	
-	
 	private static final Properties buildProperties;
+
+    private static final String CRLF = "\r\n";;
 	
 	static {
 		buildProperties = new Properties();
@@ -57,20 +57,42 @@ public class Main {
 	private static void handleRequestsOfClient(Socket client)  {
 		try {
 			InputStream is = client.getInputStream();
-			BufferedReader br = new BufferedReader(new InputStreamReader(is));
+			ProBInstance instance = null;
 			while(true) {
-				StringBuilder messageBuilder = new StringBuilder();
-				while (br.ready()) {
-					messageBuilder.append((char) br.read());
-				}
-				String message = messageBuilder.toString();
-				if (!message.isEmpty()) {
-					System.out.println("Receive message: " + message);
-				}
+				BufferedReader br = new BufferedReader(new InputStreamReader(is));
+				StringBuilder sb = new StringBuilder();
 
+				if(br.ready()) {
+				    sb.append(br.readLine());
+                }
 
+				String message = sb.toString();
+				if(!message.isEmpty()) {
+                    System.out.println("Receive message: " + message);
+                } else {
+				    continue;
+                }
+
+                DataOutputStream os = new DataOutputStream(client.getOutputStream());
 				if("Request CLI".equals(message)) {
-					createCLI(client);
+					instance = createCLI(os);
+				} else if("Shutdown CLI".equals(message)) {
+					instance.shutdown();
+					System.out.println("Shutdown CLI");
+				} else if("Interrupt CLI".equals(message)) {
+					instance.sendInterrupt();
+					System.out.println("Interrupt CLI");
+				} else {
+					if(instance == null) {
+						System.out.println("CONTINUE");
+						continue;
+					}
+					String result = instance.send(message);
+					System.out.println("Send result: " + result);
+					os.writeBytes(result);
+					os.writeBytes("\n");
+                    //os.writeBytes(CRLF);
+					os.flush();
 				}
 			}
 
@@ -79,21 +101,20 @@ public class Main {
 		}
 	}
 
-	private static void createCLI(Socket client) {
+	private static ProBInstance createCLI(DataOutputStream os) {
 		try {
-			DataOutputStream os = new DataOutputStream(client.getOutputStream());
 			ProBInstance instance = getInjector().getInstance(ProBInstance.class);
 			ProBConnection connection = instance.getConnection();
 
 			System.out.println("Provide Key: " + connection.getKey());
 			System.out.println("Provide Port: " + connection.getPort());
 
-			os.writeBytes("Key: " + connection.getKey());
-			os.writeBytes("\n");
-			os.writeBytes("Port: " + connection.getPort());
-			os.writeBytes("\n");
+			os.writeBytes("Key: " + connection.getKey() + "\n" + "Port: " + connection.getPort() + "\n");
+            os.flush();
+			return instance;
 		} catch(IOException e) {
 			logger.error(e.getMessage());
+			return null;
 		}
 	}
 
@@ -107,17 +128,14 @@ public class Main {
 				ServerSocket server = new ServerSocket(4444);
 				while (true) {
 					Socket client = server.accept();
-					handleConnection(client);
+					Thread thread = new Thread(() -> handleConnection(client));
+					thread.start();
 				}
 			} catch (IOException e) {
 				System.out.println(e.getMessage());
 			}
 		});
 		t.start();
-
-		CliClient client = new CliClient("localhost", 4444);
-		client.startConnectionWithServer();
-		client.requestCLI();
 	}
 	
 }

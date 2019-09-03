@@ -1,5 +1,13 @@
 package de.prob.clistarter;
 
+import com.google.inject.Inject;
+import com.google.inject.Provider;
+import com.google.inject.Singleton;
+import de.prob.clistarter.annotations.Home;
+import de.prob.clistarter.exception.CliError;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -14,16 +22,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import com.google.inject.Inject;
-import com.google.inject.Provider;
-import com.google.inject.Singleton;
-
-import de.prob.clistarter.annotations.Home;
-import de.prob.clistarter.exception.CliError;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 @Singleton
 public final class ProBInstanceProvider implements Provider<ProBInstance> {
 	private static final Logger logger = LoggerFactory.getLogger(ProBInstanceProvider.class);
@@ -36,7 +34,7 @@ public final class ProBInstanceProvider implements Provider<ProBInstance> {
 
 	@Inject
 	public ProBInstanceProvider(final PrologProcessProvider processProvider,
-			@Home final String home, final OsSpecificInfo osInfo, final Installer installer) {
+								@Home final String home, final OsSpecificInfo osInfo, final Installer installer) {
 		this.processProvider = processProvider;
 		this.home = home;
 		this.osInfo = osInfo;
@@ -65,10 +63,10 @@ public final class ProBInstanceProvider implements Provider<ProBInstance> {
 			}
 		}
 	}
-	
+
 	/**
 	 * Return {@code process}'s exit code as an {@link Integer}, or {@code null} if it is still running.
-	 * 
+	 *
 	 * @param process the process whose exit code to get
 	 * @return {@code process}'s exit code, or {@code null} if it is still running
 	 */

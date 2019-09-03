@@ -4,6 +4,7 @@ import de.prob.clistarter.ProBConnection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.inject.Inject;
 import java.io.BufferedReader;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -18,12 +19,14 @@ public class CliClient {
 
     private Socket socket = null;
     private DataInputStream console = null;
-    private DataOutputStream streamOut = null;
 
     private String cliKey;
     private int cliPort;
 
-    public CliClient(String serverName, int serverPort) {
+    @Inject
+    public CliClient(){}
+
+    public void connect(String serverName, int serverPort) {
         System.out.println("Establishing connection. Please wait ...");
         try {
             socket = new Socket(serverName, serverPort);
@@ -36,22 +39,37 @@ public class CliClient {
             logger.error(e2.getMessage());
             return;
         }
-        Thread t = new Thread(() -> {
-            BufferedReader br = null;
-            try {
-                br = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            } catch (IOException e) {
-                logger.error(e.getMessage());
-                return;
-            }
-            readFromServer(br);
-        });
-        t.start();
+
     }
 
-    private void readFromServer(BufferedReader br) {
+    private String readFromServer() {
+        if(cliPort == 0 || cliKey == null) {
+            readKeyAndPort();
+        }
+        while(true) {
+            try {
+                BufferedReader br = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                StringBuilder sb = new StringBuilder();
+                while(br.ready()) {
+                    sb.append(br.readLine());
+                    sb.append("\n");
+                }
+                String result = sb.toString();
+                if(!result.isEmpty()) {
+                    System.out.println("Receive result: " + result);
+                    return result;
+                }
+            } catch (IOException e) {
+                logger.error(e.getMessage());
+                return "";
+            }
+        }
+    }
+
+    private void readKeyAndPort() {
         while (true) {
             try {
+                BufferedReader br = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                 while(br.ready()) {
                     String[] str = br.readLine().split(" ");
                     String prefix = str[0];
@@ -77,10 +95,6 @@ public class CliClient {
             ProBConnection connection = new ProBConnection(cliKey, cliPort);
             connection.connect();
             System.out.println("Connected with CLI: " + connection);
-            Thread t = new Thread(() -> {
-                readFromCli(connection);
-            });
-            t.start();
         } catch(UnknownHostException e1) {
             logger.error("Host unknown: " + e1.getMessage());
             return;
@@ -90,25 +104,54 @@ public class CliClient {
         }
     }
 
-    private void readFromCli(ProBConnection connection) {
-        while (true) {
-            try {
-                //TODO
-                String str = connection.send("");
-            } catch (IOException e) {
-                logger.error(e.getMessage());
-                return;
-            }
+    public void startConnectionWithServer() {
+        console = new DataInputStream(System.in);
+    }
+
+    public void requestCLI() {
+        try {
+            String message = "Request CLI";
+            DataOutputStream streamOut = new DataOutputStream(socket.getOutputStream());
+            streamOut.write(message.getBytes());
+            streamOut.writeBytes("\n");
+        } catch (IOException e) {
+            logger.error(e.getMessage());
         }
     }
 
-    public void startConnectionWithServer() throws IOException {
-        console = new DataInputStream(System.in);
-        streamOut = new DataOutputStream(socket.getOutputStream());
+    public void interruptCLI() {
+        try {
+            String message = "Interrupt CLI";
+            DataOutputStream streamOut = new DataOutputStream(socket.getOutputStream());
+            streamOut.write(message.getBytes());
+            streamOut.writeBytes("\n");
+        } catch (IOException e) {
+            logger.error(e.getMessage());
+        }
     }
 
-    public void requestCLI() throws IOException {
-        streamOut.writeBytes("Request CLI");
+    public void shutdownCLI() {
+        try {
+            String message = "Shutdown CLI";
+            DataOutputStream streamOut = new DataOutputStream(socket.getOutputStream());
+            streamOut.write(message.getBytes());
+            streamOut.writeBytes("\n");
+        } catch (IOException e) {
+            logger.error(e.getMessage());
+        }
+    }
+
+    public String sendMessage(String message) {
+        try {
+            DataOutputStream streamOut = new DataOutputStream(socket.getOutputStream());
+            streamOut.write(message.getBytes());
+            String result = readFromServer();
+            System.out.println("Result received: " + result);
+            return result;
+        } catch (IOException e) {
+            logger.error(e.getMessage());
+        }
+        return "";
     }
 
 }
