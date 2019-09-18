@@ -79,17 +79,21 @@ public class Main {
 				}
 
 				if("Request CLI".equals(message)) {
-					DataOutputStream os = new DataOutputStream(client.getOutputStream());
-					ProBInstance instance = getInjector().getInstance(ProBInstance.class);
-					ProBConnection connection = instance.getConnection();
+                    DataOutputStream os = new DataOutputStream(client.getOutputStream());
+                    ProBInstance instance = getInjector().getInstance(ProBInstance.class);
+                    ProBConnection connection = instance.getConnection();
 
                     keyAndPortToInstance.put(connection.getKey() + connection.getPort(), instance);
 
-					System.out.println("Provide Key: " + connection.getKey());
-					System.out.println("Provide Port: " + connection.getPort());
+                    System.out.println("Provide Key: " + connection.getKey());
+                    System.out.println("Provide Port: " + connection.getPort());
 
-					os.writeBytes("Key: " + connection.getKey() + "\n" + "Port: " + connection.getPort() + "\n");
-					os.flush();
+                    os.writeBytes("Key: " + connection.getKey() + "\n" + "Port: " + connection.getPort() + "\n");
+                    os.flush();
+                } else if("Shutdown CLI".equals(message)) {
+                    return;
+                } else if("Interrupt CLI".equals(message)) {
+				    //Do nothing
 				} else {
 				    String[] msg = message.split("\n");
 				    String resMsg = String.join("\n", Arrays.asList(msg).subList(1, msg.length));
@@ -110,6 +114,10 @@ public class Main {
 			DataOutputStream os = new DataOutputStream(client.getOutputStream());
 			if ("Shutdown CLI".equals(message)) {
 				instance.shutdown();
+				ProBConnection connection = instance.getConnection();
+				String key = connection.getKey();
+				int port = connection.getPort();
+				keyAndPortToInstance.remove(key + port);
 				System.out.println("Shutdown CLI");
 			} else if ("Interrupt CLI".equals(message)) {
 				instance.sendInterrupt();
