@@ -55,6 +55,7 @@ public class Main {
 
 	private static void handleRequestsOfClient(Socket client)  {
 		try {
+            ProBInstance instance = null;
 			while(true) {
 				String message = MessageReader.read(client);
 				if (!message.isEmpty()) {
@@ -63,19 +64,10 @@ public class Main {
 					continue;
 				}
 
-				switch(message) {
-                    case "Request CLI":
-                        handleCLIRequest(client);
-                        break;
-                    case "Shutdown CLI":
-                        handleCLIShutdown(message);
-                        return;
-                    case "Interrupt CLI":
-                        handleCLIInterrupt(message);
-                        break;
-                    default:
-                        handleMessage(message, client);
-                        break;
+				if("Request CLI".equals(message)) {
+                    instance = handleCLIRequest(client);
+                } else {
+                    handleCLI(instance, message, client);
                 }
 			}
 
@@ -84,7 +76,7 @@ public class Main {
 		}
 	}
 
-	private static void handleCLIRequest(Socket client) throws IOException {
+	private static ProBInstance handleCLIRequest(Socket client) throws IOException {
         DataOutputStream os = new DataOutputStream(client.getOutputStream());
         ProBInstance instance = getInjector().getInstance(ProBInstance.class);
         ProBConnection connection = instance.getConnection();
@@ -96,48 +88,48 @@ public class Main {
 
         os.writeBytes("Key: " + connection.getKey() + "\n" + "Port: " + connection.getPort() + "\n");
         os.flush();
+        return instance;
     }
 
-    private static void handleCLIShutdown(String message) {
-        String[] msgAsArray = message.split("\n");
-        ProBInstance instance = keyAndPortToInstance.get(msgAsArray[0]);
-        System.out.println("Shutdown CLI: " + instance);
+    private static void handleCLIShutdown(ProBInstance instance) {
+        instance.shutdown();
+        ProBConnection connection = instance.getConnection();
+        String key = connection.getKey();
+        int port = connection.getPort();
+        keyAndPortToInstance.remove(key + port);
+        System.out.println("Shutdown CLI");
     }
 
-    private static void handleCLIInterrupt(String message) {
-        String[] msg = message.split("\n");
-        ProBInstance instance = keyAndPortToInstance.get(msg[0]);
+    private static void handleCLIInterrupt(ProBInstance instance) {
+	    instance.sendInterrupt();
         System.out.println("Interrupt CLI: " + instance);
     }
 
-    private static void handleMessage(String message, Socket client) {
+    private static void handleMessage(String message, Socket client) throws IOException {
         String[] msg = message.split("\n");
         String resMsg = String.join("\n", Arrays.asList(msg).subList(1, msg.length));
         ProBInstance instance = keyAndPortToInstance.get(msg[0]);
-        handleCLI(instance, resMsg, client);
+        String result = instance.send(resMsg);
+        System.out.println("Send result: " + result);
+        DataOutputStream os = new DataOutputStream(client.getOutputStream());
+        os.writeBytes(result);
+        os.writeBytes("\n");
+        os.flush();
     }
 
 	private static void handleCLI(ProBInstance instance, String message, Socket client) {
 		try {
-			DataOutputStream os = new DataOutputStream(client.getOutputStream());
-			if ("Shutdown CLI".equals(message)) {
-				instance.shutdown();
-				ProBConnection connection = instance.getConnection();
-				String key = connection.getKey();
-				int port = connection.getPort();
-				keyAndPortToInstance.remove(key + port);
-				System.out.println("Shutdown CLI");
-			} else if ("Interrupt CLI".equals(message)) {
-				instance.sendInterrupt();
-				System.out.println("Interrupt CLI");
-			} else {
-				String result = instance.send(message);
-				System.out.println("Send result: " + result);
-				os.writeBytes(result);
-				os.writeBytes("\n");
-				//os.writeBytes(CRLF);
-				os.flush();
-			}
+			switch(message) {
+                case "Shutdown CLI":
+                    handleCLIShutdown(instance);
+                    break;
+                case "Interrupt CLI":
+                    handleCLIInterrupt(instance);
+                    break;
+                default:
+                    handleMessage(message, client);
+                    break;
+            }
 		} catch(IOException e) {
 			logger.error(e.getMessage());
 		}
