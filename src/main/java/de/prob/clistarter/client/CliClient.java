@@ -1,5 +1,6 @@
 package de.prob.clistarter.client;
 
+import de.prob.clistarter.MessageReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,10 +33,8 @@ public class CliClient {
             System.out.println("Connected: " + socket);
         } catch(UnknownHostException e1) {
             logger.error("Host unknown: " + e1.getMessage());
-            return;
         } catch(IOException e2) {
             logger.error(e2.getMessage());
-            return;
         }
 
     }
@@ -43,13 +42,7 @@ public class CliClient {
     private String readFromServer() {
         while(true) {
             try {
-                BufferedReader br = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-                StringBuilder sb = new StringBuilder();
-                while(br.ready()) {
-                    sb.append(br.readLine());
-                    sb.append("\n");
-                }
-                String result = sb.toString();
+                String result = MessageReader.read(socket);
                 if(!result.isEmpty()) {
                     System.out.println("Receive result: " + result);
                     return result;

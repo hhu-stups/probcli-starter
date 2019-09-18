@@ -6,7 +6,6 @@ import com.google.inject.Stage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -53,61 +52,70 @@ public class Main {
 		}
 		return injector;
 	}
-	
-	private static void handleConnection(Socket client) {
-		handleRequestsOfClient(client);
-	}
 
 	private static void handleRequestsOfClient(Socket client)  {
 		try {
 			while(true) {
-				BufferedReader br = new BufferedReader(new InputStreamReader(client.getInputStream()));
-				StringBuilder sb = new StringBuilder();
-
-				while(br.ready()) {
-					sb.append(br.readLine());
-					if(br.ready()) {
-						sb.append("\n");
-					}
-				}
-
-				String message = sb.toString();
+				String message = MessageReader.read(client);
 				if (!message.isEmpty()) {
 					System.out.println("Receive message: " + message);
 				} else {
 					continue;
 				}
 
-				if("Request CLI".equals(message)) {
-                    DataOutputStream os = new DataOutputStream(client.getOutputStream());
-                    ProBInstance instance = getInjector().getInstance(ProBInstance.class);
-                    ProBConnection connection = instance.getConnection();
-
-                    keyAndPortToInstance.put(connection.getKey() + connection.getPort(), instance);
-
-                    System.out.println("Provide Key: " + connection.getKey());
-                    System.out.println("Provide Port: " + connection.getPort());
-
-                    os.writeBytes("Key: " + connection.getKey() + "\n" + "Port: " + connection.getPort() + "\n");
-                    os.flush();
-                } else if("Shutdown CLI".equals(message)) {
-                    return;
-                } else if("Interrupt CLI".equals(message)) {
-				    //Do nothing
-				} else {
-				    String[] msg = message.split("\n");
-				    String resMsg = String.join("\n", Arrays.asList(msg).subList(1, msg.length));
-				    System.out.println("KEY:" + msg[0]);
-				    System.out.println("MSG:" + resMsg);
-				    ProBInstance instance = keyAndPortToInstance.get(msg[0]);
-				    handleCLI(instance, resMsg, client);
-				}
+				switch(message) {
+                    case "Request CLI":
+                        handleCLIRequest(client);
+                        break;
+                    case "Shutdown CLI":
+                        handleCLIShutdown(message);
+                        return;
+                    case "Interrupt CLI":
+                        handleCLIInterrupt(message);
+                        break;
+                    default:
+                        handleMessage(message, client);
+                        break;
+                }
 			}
 
 		} catch (IOException e) {
 			logger.error(e.getMessage());
 		}
 	}
+
+	private static void handleCLIRequest(Socket client) throws IOException {
+        DataOutputStream os = new DataOutputStream(client.getOutputStream());
+        ProBInstance instance = getInjector().getInstance(ProBInstance.class);
+        ProBConnection connection = instance.getConnection();
+
+        keyAndPortToInstance.put(connection.getKey() + connection.getPort(), instance);
+
+        System.out.println("Provide Key: " + connection.getKey());
+        System.out.println("Provide Port: " + connection.getPort());
+
+        os.writeBytes("Key: " + connection.getKey() + "\n" + "Port: " + connection.getPort() + "\n");
+        os.flush();
+    }
+
+    private static void handleCLIShutdown(String message) {
+        String[] msgAsArray = message.split("\n");
+        ProBInstance instance = keyAndPortToInstance.get(msgAsArray[0]);
+        System.out.println("Shutdown CLI: " + instance);
+    }
+
+    private static void handleCLIInterrupt(String message) {
+        String[] msg = message.split("\n");
+        ProBInstance instance = keyAndPortToInstance.get(msg[0]);
+        System.out.println("Interrupt CLI: " + instance);
+    }
+
+    private static void handleMessage(String message, Socket client) {
+        String[] msg = message.split("\n");
+        String resMsg = String.join("\n", Arrays.asList(msg).subList(1, msg.length));
+        ProBInstance instance = keyAndPortToInstance.get(msg[0]);
+        handleCLI(instance, resMsg, client);
+    }
 
 	private static void handleCLI(ProBInstance instance, String message, Socket client) {
 		try {
@@ -145,7 +153,7 @@ public class Main {
 				ServerSocket server = new ServerSocket(4444);
 				while (true) {
 					Socket client = server.accept();
-					Thread thread = new Thread(() -> handleConnection(client));
+					Thread thread = new Thread(() -> handleRequestsOfClient(client));
 					thread.start();
 				}
 			} catch (IOException e) {
