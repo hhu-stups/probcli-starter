@@ -112,8 +112,7 @@ public class CliClient {
     public String sendMessage(String message) {
         try {
             DataOutputStream streamOut = new DataOutputStream(socket.getOutputStream());
-            String msg = cliKey + cliPort + "\n" + message;
-            streamOut.write(msg.getBytes());
+            streamOut.write(message.getBytes());
             String result = readFromServer();
             System.out.println("Result received: " + result);
             return result;

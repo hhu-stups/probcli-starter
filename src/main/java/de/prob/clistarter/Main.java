@@ -15,8 +15,6 @@ import java.io.UncheckedIOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Properties;
 
 public class Main {
@@ -28,8 +26,6 @@ public class Main {
 	private static final Properties buildProperties;
 
     private static final String CRLF = "\r\n";;
-
-    private static HashMap<String, ProBInstance> keyAndPortToInstance = new HashMap<>();
 	
 	static {
 		buildProperties = new Properties();
@@ -81,8 +77,6 @@ public class Main {
         ProBInstance instance = getInjector().getInstance(ProBInstance.class);
         ProBConnection connection = instance.getConnection();
 
-        keyAndPortToInstance.put(connection.getKey() + connection.getPort(), instance);
-
         System.out.println("Provide Key: " + connection.getKey());
         System.out.println("Provide Port: " + connection.getPort());
 
@@ -96,7 +90,6 @@ public class Main {
         ProBConnection connection = instance.getConnection();
         String key = connection.getKey();
         int port = connection.getPort();
-        keyAndPortToInstance.remove(key + port);
         System.out.println("Shutdown CLI");
     }
 
@@ -105,11 +98,8 @@ public class Main {
         System.out.println("Interrupt CLI: " + instance);
     }
 
-    private static void handleMessage(String message, Socket client) throws IOException {
-        String[] msg = message.split("\n");
-        String resMsg = String.join("\n", Arrays.asList(msg).subList(1, msg.length));
-        ProBInstance instance = keyAndPortToInstance.get(msg[0]);
-        String result = instance.send(resMsg);
+    private static void handleMessage(ProBInstance instance, String message, Socket client) throws IOException {
+        String result = instance.send(message);
         System.out.println("Send result: " + result);
         DataOutputStream os = new DataOutputStream(client.getOutputStream());
         os.writeBytes(result);
@@ -127,7 +117,7 @@ public class Main {
                     handleCLIInterrupt(instance);
                     break;
                 default:
-                    handleMessage(message, client);
+                    handleMessage(instance, message, client);
                     break;
             }
 		} catch(IOException e) {
