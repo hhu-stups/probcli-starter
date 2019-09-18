@@ -6,7 +6,6 @@ import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
 import java.io.BufferedReader;
-import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -18,10 +17,6 @@ public class CliClient {
     private static final Logger logger = LoggerFactory.getLogger(CliClient.class);
 
     private Socket socket = null;
-    private DataInputStream console = null;
-
-    private String cliKey;
-    private int cliPort;
 
     @Inject
     public CliClient(){}
@@ -55,6 +50,8 @@ public class CliClient {
     }
 
     private void readKeyAndPort() {
+        String cliKey = "";
+        int cliPort = 0;
         while(true) {
             try {
                 BufferedReader br = new BufferedReader(new InputStreamReader(socket.getInputStream()));
@@ -65,6 +62,7 @@ public class CliClient {
                         cliKey = str[1];
                     } else if("Port:".equals(prefix)) {
                         cliPort = Integer.parseInt(str[1]);
+                        System.out.println("Connected with Key: " + cliKey + " , Port: " + cliPort);
                         return;
                     }
                 }

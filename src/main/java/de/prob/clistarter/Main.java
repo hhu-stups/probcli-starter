@@ -87,10 +87,7 @@ public class Main {
 
     private static void handleCLIShutdown(ProBInstance instance) {
         instance.shutdown();
-        ProBConnection connection = instance.getConnection();
-        String key = connection.getKey();
-        int port = connection.getPort();
-        System.out.println("Shutdown CLI");
+        System.out.println("Shutdown CLI: " + instance);
     }
 
     private static void handleCLIInterrupt(ProBInstance instance) {
