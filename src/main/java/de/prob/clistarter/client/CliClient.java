@@ -1,6 +1,5 @@
 package de.prob.clistarter.client;
 
-import de.prob.clistarter.ProBConnection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,7 +30,6 @@ public class CliClient {
         try {
             socket = new Socket(serverName, serverPort);
             System.out.println("Connected: " + socket);
-            startConnectionWithServer();
         } catch(UnknownHostException e1) {
             logger.error("Host unknown: " + e1.getMessage());
             return;
@@ -43,9 +41,6 @@ public class CliClient {
     }
 
     private String readFromServer() {
-        if(cliPort == 0 || cliKey == null) {
-            readKeyAndPort();
-        }
         while(true) {
             try {
                 BufferedReader br = new BufferedReader(new InputStreamReader(socket.getInputStream()));
@@ -67,7 +62,7 @@ public class CliClient {
     }
 
     private void readKeyAndPort() {
-        while (true) {
+        while(true) {
             try {
                 BufferedReader br = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                 while(br.ready()) {
@@ -77,11 +72,8 @@ public class CliClient {
                         cliKey = str[1];
                     } else if("Port:".equals(prefix)) {
                         cliPort = Integer.parseInt(str[1]);
+                        return;
                     }
-                }
-                if(cliKey != null && cliPort != 0) {
-                    connectWithCli();
-                    break;
                 }
             } catch (IOException e) {
                 logger.error(e.getMessage());
@@ -90,30 +82,13 @@ public class CliClient {
         }
     }
 
-    private void connectWithCli() {
-        try {
-            ProBConnection connection = new ProBConnection(cliKey, cliPort);
-            connection.connect();
-            System.out.println("Connected with CLI: " + connection);
-        } catch(UnknownHostException e1) {
-            logger.error("Host unknown: " + e1.getMessage());
-            return;
-        } catch(IOException e2) {
-            logger.error(e2.getMessage());
-            return;
-        }
-    }
-
-    public void startConnectionWithServer() {
-        console = new DataInputStream(System.in);
-    }
-
     public void requestCLI() {
         try {
             String message = "Request CLI";
             DataOutputStream streamOut = new DataOutputStream(socket.getOutputStream());
             streamOut.write(message.getBytes());
             streamOut.writeBytes("\n");
+            readKeyAndPort();
         } catch (IOException e) {
             logger.error(e.getMessage());
         }
@@ -144,7 +119,8 @@ public class CliClient {
     public String sendMessage(String message) {
         try {
             DataOutputStream streamOut = new DataOutputStream(socket.getOutputStream());
-            streamOut.write(message.getBytes());
+            String msg = cliKey + cliPort + "\n" + message;
+            streamOut.write(msg.getBytes());
             String result = readFromServer();
             System.out.println("Result received: " + result);
             return result;

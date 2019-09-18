@@ -16,6 +16,8 @@ import java.io.UncheckedIOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Properties;
 
 public class Main {
@@ -27,6 +29,8 @@ public class Main {
 	private static final Properties buildProperties;
 
     private static final String CRLF = "\r\n";;
+
+    private static HashMap<String, ProBInstance> keyAndPortToInstance = new HashMap<>();
 	
 	static {
 		buildProperties = new Properties();
@@ -56,43 +60,43 @@ public class Main {
 
 	private static void handleRequestsOfClient(Socket client)  {
 		try {
-			InputStream is = client.getInputStream();
-			ProBInstance instance = null;
 			while(true) {
-				BufferedReader br = new BufferedReader(new InputStreamReader(is));
+				BufferedReader br = new BufferedReader(new InputStreamReader(client.getInputStream()));
 				StringBuilder sb = new StringBuilder();
 
-				if(br.ready()) {
-				    sb.append(br.readLine());
-                }
+				while(br.ready()) {
+					sb.append(br.readLine());
+					if(br.ready()) {
+						sb.append("\n");
+					}
+				}
 
 				String message = sb.toString();
-				if(!message.isEmpty()) {
-                    System.out.println("Receive message: " + message);
-                } else {
-				    continue;
-                }
-
-                DataOutputStream os = new DataOutputStream(client.getOutputStream());
-				if("Request CLI".equals(message)) {
-					instance = createCLI(os);
-				} else if("Shutdown CLI".equals(message)) {
-					instance.shutdown();
-					System.out.println("Shutdown CLI");
-				} else if("Interrupt CLI".equals(message)) {
-					instance.sendInterrupt();
-					System.out.println("Interrupt CLI");
+				if (!message.isEmpty()) {
+					System.out.println("Receive message: " + message);
 				} else {
-					if(instance == null) {
-						System.out.println("CONTINUE");
-						continue;
-					}
-					String result = instance.send(message);
-					System.out.println("Send result: " + result);
-					os.writeBytes(result);
-					os.writeBytes("\n");
-                    //os.writeBytes(CRLF);
+					continue;
+				}
+
+				if("Request CLI".equals(message)) {
+					DataOutputStream os = new DataOutputStream(client.getOutputStream());
+					ProBInstance instance = getInjector().getInstance(ProBInstance.class);
+					ProBConnection connection = instance.getConnection();
+
+                    keyAndPortToInstance.put(connection.getKey() + connection.getPort(), instance);
+
+					System.out.println("Provide Key: " + connection.getKey());
+					System.out.println("Provide Port: " + connection.getPort());
+
+					os.writeBytes("Key: " + connection.getKey() + "\n" + "Port: " + connection.getPort() + "\n");
 					os.flush();
+				} else {
+				    String[] msg = message.split("\n");
+				    String resMsg = String.join("\n", Arrays.asList(msg).subList(1, msg.length));
+				    System.out.println("KEY:" + msg[0]);
+				    System.out.println("MSG:" + resMsg);
+				    ProBInstance instance = keyAndPortToInstance.get(msg[0]);
+				    handleCLI(instance, resMsg, client);
 				}
 			}
 
@@ -101,20 +105,25 @@ public class Main {
 		}
 	}
 
-	private static ProBInstance createCLI(DataOutputStream os) {
+	private static void handleCLI(ProBInstance instance, String message, Socket client) {
 		try {
-			ProBInstance instance = getInjector().getInstance(ProBInstance.class);
-			ProBConnection connection = instance.getConnection();
-
-			System.out.println("Provide Key: " + connection.getKey());
-			System.out.println("Provide Port: " + connection.getPort());
-
-			os.writeBytes("Key: " + connection.getKey() + "\n" + "Port: " + connection.getPort() + "\n");
-            os.flush();
-			return instance;
+			DataOutputStream os = new DataOutputStream(client.getOutputStream());
+			if ("Shutdown CLI".equals(message)) {
+				instance.shutdown();
+				System.out.println("Shutdown CLI");
+			} else if ("Interrupt CLI".equals(message)) {
+				instance.sendInterrupt();
+				System.out.println("Interrupt CLI");
+			} else {
+				String result = instance.send(message);
+				System.out.println("Send result: " + result);
+				os.writeBytes(result);
+				os.writeBytes("\n");
+				//os.writeBytes(CRLF);
+				os.flush();
+			}
 		} catch(IOException e) {
 			logger.error(e.getMessage());
-			return null;
 		}
 	}
 
@@ -122,7 +131,7 @@ public class Main {
 		return buildProperties.getProperty("version");
 	}
 	
-	public static void main(String[] args) throws IOException {
+	public static void main(String[] args) {
 		Thread t = new Thread(() -> {
 			try {
 				ServerSocket server = new ServerSocket(4444);
