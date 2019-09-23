@@ -102,6 +102,7 @@ public class CliClient {
             DataOutputStream streamOut = new DataOutputStream(socket.getOutputStream());
             streamOut.write(message.getBytes());
             streamOut.writeBytes("\n");
+            socket.getOutputStream().close();
         } catch (IOException e) {
             logger.error(e.getMessage());
         }
