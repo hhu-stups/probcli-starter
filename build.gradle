@@ -36,7 +36,7 @@ repositories {
 sourceSets.main.java.srcDirs = ['src/main/java']
 
 
-mainClassName = "de.prob.clistarter.Main"
+mainClassName = "de.prob.clistarter.ProBCliStarter"
 
 dependencies {
 	compile group: "com.google.inject", name: "guice", version: "4.2.2" // Apache License 2.0

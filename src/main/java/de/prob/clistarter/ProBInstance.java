@@ -1,7 +1,6 @@
 package de.prob.clistarter;
 
 import com.google.common.base.MoreObjects;
-import de.prob.clistarter.exception.CliError;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,7 +17,7 @@ public class ProBInstance {
 	final Logger logger = LoggerFactory.getLogger(ProBInstance.class);
 	private final Process process;
 
-	private final ProBConnection connection;
+	private ProBConnection connection;
 
 	private String[] interruptCommand;
 
@@ -69,13 +68,6 @@ public class ProBInstance {
 		}
 	}
 
-	public String send(final String term) {
-		try {
-			return connection.send(term);
-		} catch (IOException e) {
-			throw new CliError("Error during communication with Prolog core.", e);
-		}
-	}
 
 	public boolean isShuttingDown() {
 		return shuttingDown;

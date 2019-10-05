@@ -17,19 +17,17 @@ import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.util.Properties;
 
-public class Main {
+public class ProBCliStarter {
 	
 	private static Injector injector = null;
 
-	private static final Logger logger = LoggerFactory.getLogger(Main.class);
+	private static final Logger logger = LoggerFactory.getLogger(ProBCliStarter.class);
 	
 	private static final Properties buildProperties;
-
-    private static final String CRLF = "\r\n";;
 	
 	static {
 		buildProperties = new Properties();
-		final InputStream is = Main.class.getResourceAsStream("build.properties");
+		final InputStream is = ProBCliStarter.class.getResourceAsStream("build.properties");
 		if (is == null) {
 			throw new IllegalStateException("Build properties not found, this should never happen!");
 		} else {
@@ -63,7 +61,7 @@ public class Main {
 				if("Request CLI".equals(message)) {
                     instance = handleCLIRequest(client);
                 } else {
-                    handleCLI(instance, message, client);
+                    handleCLI(instance, message);
                 }
 			}
 
@@ -77,11 +75,11 @@ public class Main {
         ProBInstance instance = getInjector().getInstance(ProBInstance.class);
         ProBConnection connection = instance.getConnection();
 
-        System.out.println("Provide Key: " + connection.getKey());
-        System.out.println("Provide Port: " + connection.getPort());
-
-        os.writeBytes("Key: " + connection.getKey() + "\n" + "Port: " + connection.getPort() + "\n");
+        os.writeBytes("Address: " + connection.getAddress() + "\n" + "Port: " + connection.getPort() + "\n");
         os.flush();
+
+		System.out.println("Provide Address: " + connection.getAddress());
+		System.out.println("Provide Port: " + connection.getPort());
         return instance;
     }
 
@@ -95,30 +93,14 @@ public class Main {
         System.out.println("Interrupt CLI: " + instance);
     }
 
-    private static void handleMessage(ProBInstance instance, String message, Socket client) throws IOException {
-        String result = instance.send(message);
-        System.out.println("Send result: " + result);
-        DataOutputStream os = new DataOutputStream(client.getOutputStream());
-        os.writeBytes(result);
-        os.writeBytes("\n");
-        os.flush();
-    }
-
-	private static void handleCLI(ProBInstance instance, String message, Socket client) {
-		try {
-			switch(message) {
-                case "Shutdown CLI":
-                    handleCLIShutdown(instance);
-                    break;
-                case "Interrupt CLI":
-                    handleCLIInterrupt(instance);
-                    break;
-                default:
-                    handleMessage(instance, message, client);
-                    break;
-            }
-		} catch(IOException e) {
-			logger.error(e.getMessage());
+	private static void handleCLI(ProBInstance instance, String message) {
+		switch(message) {
+			case "Shutdown CLI":
+				handleCLIShutdown(instance);
+				break;
+			case "Interrupt CLI":
+				handleCLIInterrupt(instance);
+				break;
 		}
 	}
 
@@ -136,7 +118,7 @@ public class Main {
 					thread.start();
 				}
 			} catch (IOException e) {
-				System.out.println(e.getMessage());
+				logger.error(e.getMessage());
 			}
 		});
 		t.start();

@@ -1,21 +1,19 @@
 package de.prob.clistarter;
 
+import com.google.inject.Inject;
+import com.google.inject.Provider;
+import de.prob.clistarter.ModuleCli.DebuggingKey;
+import de.prob.clistarter.annotations.Home;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import com.google.inject.Inject;
-import com.google.inject.Provider;
-
-import de.prob.clistarter.annotations.Home;
-import de.prob.clistarter.ModuleCli.DebuggingKey;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-class PrologProcessProvider implements Provider<ProcessHandle> {
+public class PrologProcessProvider implements Provider<ProcessHandle> {
 	private static final Logger logger = LoggerFactory.getLogger(PrologProcessProvider.class);
 	private static final List<Process> toDestroyOnShutdown = Collections.synchronizedList(new ArrayList<>());
 

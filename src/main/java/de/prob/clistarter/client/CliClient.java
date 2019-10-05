@@ -1,6 +1,5 @@
 package de.prob.clistarter.client;
 
-import de.prob.clistarter.MessageReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -14,9 +13,15 @@ import java.net.UnknownHostException;
 
 public class CliClient {
 
+    private static final int BUFFER_SIZE = 1024;
+
     private static final Logger logger = LoggerFactory.getLogger(CliClient.class);
 
     private Socket socket = null;
+
+    private Socket cliSocket = null;
+
+    private volatile boolean busy;
 
     @Inject
     public CliClient(){}
@@ -26,6 +31,7 @@ public class CliClient {
         try {
             socket = new Socket(serverName, serverPort);
             System.out.println("Connected: " + socket);
+            requestCLI();
         } catch(UnknownHostException e1) {
             logger.error("Host unknown: " + e1.getMessage());
         } catch(IOException e2) {
@@ -34,14 +40,12 @@ public class CliClient {
 
     }
 
-    private String readFromServer() {
+    private String readFromCli() {
         while(true) {
             try {
-                String result = MessageReader.read(socket);
-                if(!result.isEmpty()) {
-                    System.out.println("Receive result: " + result);
-                    return result;
-                }
+                String result = readAnswer(cliSocket);
+                System.out.println("Receive result: " + result);
+                return result;
             } catch (IOException e) {
                 logger.error(e.getMessage());
                 return "";
@@ -49,31 +53,73 @@ public class CliClient {
         }
     }
 
+    protected String readAnswer(Socket cliSocket) throws IOException {
+        final StringBuilder result = new StringBuilder();
+        final byte[] buffer = new byte[BUFFER_SIZE];
+        boolean done = false;
+
+        while (!done) {
+            /*
+             * It might be necessary to check for inputStream.available() > 0.
+             * Or add some kind of timer to prevent the thread blocks forever.
+             * See task#102
+             */
+            busy = true;
+            int count = cliSocket.getInputStream().read(buffer);
+            busy = false; // as soon as we read something, we know that the
+            // Prolog has been processed and we do not want to
+            // allow interruption
+            if (count > 0) {
+                final byte length = 1;
+
+                // check for end of transmission (i.e. last byte is 1)
+                if (buffer[count - length] == 1) {
+                    done = true;
+                    count--; // remove end of transmission marker
+                }
+
+                // trim white spaces and append
+                // instead of removing the last byte trim is used, because on
+                // windows prob uses \r\n as new line.
+                String s = new String(buffer, 0, count, "utf8");
+                result.append(s.replace("\r", "").replace("\n", ""));
+            } else {
+                done = true;
+            }
+        }
+
+        return result.length() > 0 ? result.toString() : null;
+    }
+
     private void readKeyAndPort() {
-        String cliKey = "";
         int cliPort = 0;
+        String cliAddress = "";
         while(true) {
             try {
                 BufferedReader br = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                 while(br.ready()) {
                     String[] str = br.readLine().split(" ");
                     String prefix = str[0];
-                    if("Key:".equals(prefix)) {
-                        cliKey = str[1];
+                    if("Address:".equals(prefix)) {
+                        cliAddress = str[1];
                     } else if("Port:".equals(prefix)) {
                         cliPort = Integer.parseInt(str[1]);
-                        System.out.println("Connected with Key: " + cliKey + " , Port: " + cliPort);
+                        cliSocket = new Socket(cliAddress, cliPort);
+                        System.out.println("Connected with CLI socket: " + cliAddress + ", Port: " + cliPort);
                         return;
                     }
                 }
-            } catch (IOException e) {
-                logger.error(e.getMessage());
+            } catch(UnknownHostException e1) {
+                logger.error("Host unknown: " + e1.getMessage());
+                return;
+            } catch (IOException e2) {
+                logger.error(e2.getMessage());
                 return;
             }
         }
     }
 
-    public void requestCLI() {
+    private void requestCLI() {
         try {
             String message = "Request CLI";
             DataOutputStream streamOut = new DataOutputStream(socket.getOutputStream());
@@ -103,6 +149,7 @@ public class CliClient {
             streamOut.write(message.getBytes());
             streamOut.writeBytes("\n");
             socket.getOutputStream().close();
+            cliSocket.getOutputStream().close();
         } catch (IOException e) {
             logger.error(e.getMessage());
         }
@@ -110,9 +157,10 @@ public class CliClient {
 
     public String sendMessage(String message) {
         try {
-            DataOutputStream streamOut = new DataOutputStream(socket.getOutputStream());
+            DataOutputStream streamOut = new DataOutputStream(cliSocket.getOutputStream());
             streamOut.write(message.getBytes());
-            String result = readFromServer();
+            streamOut.writeBytes("\n");
+            String result = readFromCli();
             System.out.println("Result received: " + result);
             return result;
         } catch (IOException e) {
@@ -121,4 +169,7 @@ public class CliClient {
         return "";
     }
 
+    public boolean isBusy() {
+        return busy;
+    }
 }

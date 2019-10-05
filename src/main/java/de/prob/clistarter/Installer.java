@@ -18,16 +18,13 @@ import java.util.Set;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 
-import de.prob.clistarter.Main;
-import de.prob.clistarter.FileHandler;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Singleton
 public final class Installer {
 	private static final String CLI_BINARIES_RESOURCE_PREFIX = "binaries/";
-	public static final Path DEFAULT_HOME = Paths.get(System.getProperty("user.home"), ".prob", "prob2-" + Main.getVersion());
+	public static final Path DEFAULT_HOME = Paths.get(System.getProperty("user.home"), ".prob", "prob2-" + ProBCliStarter.getVersion());
 	private static final Path LOCK_FILE_PATH = DEFAULT_HOME.resolve("installer.lock");
 	private static final Logger logger = LoggerFactory.getLogger(Installer.class);
 	private final OsSpecificInfo osInfo;
