@@ -2,6 +2,7 @@ package de.prob.clistarter;
 
 import com.google.inject.Guice;
 import com.google.inject.Injector;
+import com.google.inject.Singleton;
 import com.google.inject.Stage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,6 +18,7 @@ import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.util.Properties;
 
+@Singleton
 public class ProBCliStarter {
 	
 	private static Injector injector = null;
@@ -24,6 +26,10 @@ public class ProBCliStarter {
 	private static final Logger logger = LoggerFactory.getLogger(ProBCliStarter.class);
 	
 	private static final Properties buildProperties;
+
+	private final ServerSocket server;
+
+	private Thread thread;
 	
 	static {
 		buildProperties = new Properties();
@@ -47,7 +53,38 @@ public class ProBCliStarter {
 		return injector;
 	}
 
-	private static void handleRequestsOfClient(Socket client)  {
+	public ProBCliStarter() throws IOException {
+		this.server = new ServerSocket(4444);
+	}
+
+	public void start() {
+		thread = new Thread(() -> {
+			try {
+				if(thread.isInterrupted()) {
+					return;
+				}
+				while (true) {
+					Socket client = server.accept();
+					Thread thread = new Thread(() -> handleRequestsOfClient(client));
+					thread.start();
+				}
+			} catch (IOException e) {
+				logger.error(e.getMessage());
+			}
+		});
+        thread.start();
+	}
+
+	public void shutdown() {
+		try {
+			server.close();
+		} catch (IOException e) {
+			logger.error(e.getMessage());
+		}
+		thread.interrupt();
+	}
+
+	private void handleRequestsOfClient(Socket client)  {
 		try {
             ProBInstance instance = null;
 			while(true) {
@@ -70,7 +107,7 @@ public class ProBCliStarter {
 		}
 	}
 
-	private static ProBInstance handleCLIRequest(Socket client) throws IOException {
+	private ProBInstance handleCLIRequest(Socket client) throws IOException {
         DataOutputStream os = new DataOutputStream(client.getOutputStream());
         ProBInstance instance = getInjector().getInstance(ProBInstance.class);
         ProBConnection connection = instance.getConnection();
@@ -83,17 +120,17 @@ public class ProBCliStarter {
         return instance;
     }
 
-    private static void handleCLIShutdown(ProBInstance instance) {
+    private void handleCLIShutdown(ProBInstance instance) {
         instance.shutdown();
         System.out.println("Shutdown CLI: " + instance);
     }
 
-    private static void handleCLIInterrupt(ProBInstance instance) {
+    private void handleCLIInterrupt(ProBInstance instance) {
 	    instance.sendInterrupt();
         System.out.println("Interrupt CLI: " + instance);
     }
 
-	private static void handleCLI(ProBInstance instance, String message) {
+	private void handleCLI(ProBInstance instance, String message) {
 		switch(message) {
 			case "Shutdown CLI":
 				handleCLIShutdown(instance);
@@ -109,19 +146,14 @@ public class ProBCliStarter {
 	}
 	
 	public static void main(String[] args) {
-		Thread t = new Thread(() -> {
-			try {
-				ServerSocket server = new ServerSocket(4444);
-				while (true) {
-					Socket client = server.accept();
-					Thread thread = new Thread(() -> handleRequestsOfClient(client));
-					thread.start();
-				}
-			} catch (IOException e) {
-				logger.error(e.getMessage());
-			}
-		});
-		t.start();
+		ProBCliStarter cliStarter;
+		try {
+			cliStarter = new ProBCliStarter();
+		} catch (IOException e) {
+			logger.error(e.getMessage());
+			return;
+		}
+		cliStarter.start();
 	}
 	
 }
