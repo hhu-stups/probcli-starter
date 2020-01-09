@@ -44,7 +44,7 @@ public class CliClient {
         while(true) {
             try {
                 String result = readAnswer(cliSocket);
-                System.out.println("Receive result: " + result);
+                //System.out.println("Receive result: " + result);
                 return result;
             } catch (IOException e) {
                 logger.error(e.getMessage());
@@ -161,7 +161,7 @@ public class CliClient {
             streamOut.write(message.getBytes());
             streamOut.writeBytes("\n");
             String result = readFromCli();
-            System.out.println("Result received: " + result);
+            //System.out.println("Result received: " + result);
             return result;
         } catch (IOException e) {
             logger.error(e.getMessage());

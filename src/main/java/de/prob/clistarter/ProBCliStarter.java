@@ -53,8 +53,8 @@ public class ProBCliStarter {
 		return injector;
 	}
 
-	public ProBCliStarter() throws IOException {
-		this.server = new ServerSocket(4444);
+	public ProBCliStarter(int port) throws IOException {
+		this.server = new ServerSocket(port);
 	}
 
 	public void start() {
@@ -90,7 +90,7 @@ public class ProBCliStarter {
 			while(true) {
 				String message = MessageReader.read(client);
 				if (!message.isEmpty()) {
-					System.out.println("Receive message: " + message);
+					//System.out.println("Receive message: " + message);
 				} else {
 					continue;
 				}
@@ -148,7 +148,7 @@ public class ProBCliStarter {
 	public static void main(String[] args) {
 		ProBCliStarter cliStarter;
 		try {
-			cliStarter = new ProBCliStarter();
+			cliStarter = new ProBCliStarter(11312);
 		} catch (IOException e) {
 			logger.error(e.getMessage());
 			return;
