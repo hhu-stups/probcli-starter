@@ -101,7 +101,7 @@ public class CliClient {
                     String[] str = br.readLine().split(" ");
                     String prefix = str[0];
                     if("Address:".equals(prefix)) {
-                        cliAddress = str[1];
+                        cliAddress = socket.getInetAddress().getHostAddress();
                     } else if("Port:".equals(prefix)) {
                         cliPort = Integer.parseInt(str[1]);
                         cliSocket = new Socket(cliAddress, cliPort);
@@ -110,10 +110,10 @@ public class CliClient {
                     }
                 }
             } catch(UnknownHostException e1) {
-                logger.error("Host unknown: " + e1.getMessage());
+                logger.error("Host unknown: ", e1);
                 return;
             } catch (IOException e2) {
-                logger.error(e2.getMessage());
+                logger.error("", e2);
                 return;
             }
         }

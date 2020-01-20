@@ -79,7 +79,7 @@ public class PrologProcessProvider implements Provider<ProcessHandle> {
 			command.add(osInfo.getHelperCmd());
 		}
 		command.add(executable);
-		command.add("-sf");
+		command.add("-remote_socketserver");
 		return command;
 	}
 }

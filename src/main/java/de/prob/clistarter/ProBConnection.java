@@ -6,6 +6,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.InetAddress;
+import java.net.UnknownHostException;
 
 public class ProBConnection {
 
@@ -32,7 +33,7 @@ public class ProBConnection {
 
 	public void connect() throws IOException {
 		logger.debug("Connecting to port {} using key {}", port, key);
-		this.address = InetAddress.getByName(null);
+		this.address = InetAddress.getByName("");
 		logger.debug("Connected");
 	}
 
