@@ -43,7 +43,8 @@ public class OsInfoProvider implements Provider<OsSpecificInfo> {
 			} else {
 				throw new UnsupportedOperationException("Unsupported architecture for Windows: " + osArch);
 			}
-			return new OsSpecificInfo("probcli.exe", null, "lib" + File.separator + "send_user_interrupt.exe", "Windows", dirName, "lib\\cspmf.exe");
+			return new OsSpecificInfo("probcli.exe", null, "lib" + File.separator + "send_user_interrupt.exe",
+					"Windows", dirName, "lib\\cspmf.exe");
 		} else if (os.contains("mac")) {
 			return new OsSpecificInfo("probcli.sh", "sh", "send_user_interrupt", "MacOs", "leopard64", "lib/cspmf");
 		} else if (os.contains("linux")) {

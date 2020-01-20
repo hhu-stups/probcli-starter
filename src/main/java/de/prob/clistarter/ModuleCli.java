@@ -22,8 +22,7 @@ public class ModuleCli extends AbstractModule {
 	@Override
 	protected void configure() {
 		bind(ProBInstance.class).toProvider(ProBInstanceProvider.class);
-		bind(OsSpecificInfo.class).toProvider(OsInfoProvider.class)
-				.asEagerSingleton();
+		bind(OsSpecificInfo.class).toProvider(OsInfoProvider.class).asEagerSingleton();
 	}
 
 	@Provides
@@ -34,8 +33,8 @@ public class ModuleCli extends AbstractModule {
 			return homedir + File.separator;
 		}
 		return Installer.DEFAULT_HOME + File.separator;
-	}	
-	
+	}
+
 	@Provides
 	@OsName
 	private static String getOsName() {

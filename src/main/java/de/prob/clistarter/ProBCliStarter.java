@@ -20,17 +20,17 @@ import java.util.Properties;
 
 @Singleton
 public class ProBCliStarter {
-	
+
 	private static Injector injector = null;
 
 	private static final Logger logger = LoggerFactory.getLogger(ProBCliStarter.class);
-	
+
 	private static final Properties buildProperties;
 
 	private final ServerSocket server;
 
 	private Thread thread;
-	
+
 	static {
 		buildProperties = new Properties();
 		final InputStream is = ProBCliStarter.class.getResourceAsStream("build.properties");
@@ -40,12 +40,12 @@ public class ProBCliStarter {
 			try (final Reader r = new InputStreamReader(is, StandardCharsets.UTF_8)) {
 				buildProperties.load(r);
 			} catch (IOException e) {
-				throw new UncheckedIOException("IOException while loading build properties, this should never happen!", e);
+				throw new UncheckedIOException("IOException while loading build properties, this should never happen!",
+						e);
 			}
 		}
 	}
-	
-	
+
 	public static synchronized Injector getInjector() {
 		if (injector == null) {
 			injector = Guice.createInjector(Stage.PRODUCTION, new ModuleCli());
@@ -60,7 +60,7 @@ public class ProBCliStarter {
 	public void start() {
 		thread = new Thread(() -> {
 			try {
-				if(thread.isInterrupted()) {
+				if (thread.isInterrupted()) {
 					return;
 				}
 				while (true) {
@@ -72,7 +72,7 @@ public class ProBCliStarter {
 				logger.error(e.getMessage());
 			}
 		});
-        thread.start();
+		thread.start();
 	}
 
 	public void shutdown() {
@@ -84,22 +84,22 @@ public class ProBCliStarter {
 		thread.interrupt();
 	}
 
-	private void handleRequestsOfClient(Socket client)  {
+	private void handleRequestsOfClient(Socket client) {
 		try {
-            ProBInstance instance = null;
-			while(true) {
+			ProBInstance instance = null;
+			while (true) {
 				String message = MessageReader.read(client);
 				if (!message.isEmpty()) {
-					switch(message) {
-						case "Request CLI":
-							instance = handleCLIRequest(client);
-							break;
-						case "Shutdown CLI":
-							handleCLIShutdown(instance);
-							return;
-						case "Interrupt CLI":
-							handleCLIInterrupt(instance);
-							break;
+					switch (message) {
+					case "Request CLI":
+						instance = handleCLIRequest(client);
+						break;
+					case "Shutdown CLI":
+						handleCLIShutdown(instance);
+						return;
+					case "Interrupt CLI":
+						handleCLIInterrupt(instance);
+						break;
 					}
 				}
 			}
@@ -110,32 +110,33 @@ public class ProBCliStarter {
 	}
 
 	private ProBInstance handleCLIRequest(Socket client) throws IOException {
-        DataOutputStream os = new DataOutputStream(client.getOutputStream());
-        ProBInstance instance = getInjector().getInstance(ProBInstance.class);
-        ProBConnection connection = instance.getConnection();
-        
-        os.writeBytes("Address: " + this.server.getInetAddress().getHostAddress() + "\n" + "Port: " + connection.getPort() + "\n");
-        os.flush();
+		DataOutputStream os = new DataOutputStream(client.getOutputStream());
+		ProBInstance instance = getInjector().getInstance(ProBInstance.class);
+		ProBConnection connection = instance.getConnection();
+
+		os.writeBytes("Address: " + this.server.getInetAddress().getHostAddress() + "\n" + "Port: "
+				+ connection.getPort() + "\n");
+		os.flush();
 
 		System.out.println("Provide Address: " + this.server.getInetAddress().getHostAddress());
 		System.out.println("Provide Port: " + connection.getPort());
-        return instance;
-    }
+		return instance;
+	}
 
-    private void handleCLIShutdown(ProBInstance instance) {
-        instance.shutdown();
-        System.out.println("Shutdown CLI: " + instance);
-    }
+	private void handleCLIShutdown(ProBInstance instance) {
+		instance.shutdown();
+		System.out.println("Shutdown CLI: " + instance);
+	}
 
-    private void handleCLIInterrupt(ProBInstance instance) {
-	    instance.sendInterrupt();
-        System.out.println("Interrupt CLI: " + instance);
-    }
+	private void handleCLIInterrupt(ProBInstance instance) {
+		instance.sendInterrupt();
+		System.out.println("Interrupt CLI: " + instance);
+	}
 
 	public static String getVersion() {
 		return buildProperties.getProperty("version");
 	}
-	
+
 	public static void main(String[] args) {
 		ProBCliStarter cliStarter;
 		try {
@@ -146,5 +147,5 @@ public class ProBCliStarter {
 		}
 		cliStarter.start();
 	}
-	
+
 }

@@ -16,8 +16,7 @@ class InterruptRefPattern extends AbstractCliPattern<Long> {
 
 	private Long reference;
 
-	private final Logger logger = LoggerFactory
-			.getLogger(InterruptRefPattern.class);
+	private final Logger logger = LoggerFactory.getLogger(InterruptRefPattern.class);
 
 	InterruptRefPattern() {
 		super("user interrupt reference id: *(\\d+) *$");

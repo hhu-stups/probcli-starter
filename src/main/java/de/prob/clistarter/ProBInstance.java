@@ -68,7 +68,6 @@ public class ProBInstance {
 		}
 	}
 
-
 	public boolean isShuttingDown() {
 		return shuttingDown;
 	}

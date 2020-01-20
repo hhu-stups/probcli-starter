@@ -18,7 +18,8 @@ public class CliVersionNumber implements Comparable<CliVersionNumber> {
 		this.service = service;
 		this.qualifier = qualifier;
 		this.revision = revision;
-		this.version = String.format("%s.%s.%s-%s%s", major, minor, service, qualifier, revision.isEmpty() ? "" : " (" + revision + ")");
+		this.version = String.format("%s.%s.%s-%s%s", major, minor, service, qualifier,
+				revision.isEmpty() ? "" : " (" + revision + ")");
 	}
 
 	@Override

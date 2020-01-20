@@ -33,8 +33,8 @@ public final class ProBInstanceProvider implements Provider<ProBInstance> {
 	private final Set<WeakReference<ProBInstance>> processes = new HashSet<>();
 
 	@Inject
-	public ProBInstanceProvider(final PrologProcessProvider processProvider,
-								@Home final String home, final OsSpecificInfo osInfo, final Installer installer) {
+	public ProBInstanceProvider(final PrologProcessProvider processProvider, @Home final String home,
+			final OsSpecificInfo osInfo, final Installer installer) {
 		this.processProvider = processProvider;
 		this.home = home;
 		this.osInfo = osInfo;
@@ -65,10 +65,13 @@ public final class ProBInstanceProvider implements Provider<ProBInstance> {
 	}
 
 	/**
-	 * Return {@code process}'s exit code as an {@link Integer}, or {@code null} if it is still running.
+	 * Return {@code process}'s exit code as an {@link Integer}, or {@code null}
+	 * if it is still running.
 	 *
-	 * @param process the process whose exit code to get
-	 * @return {@code process}'s exit code, or {@code null} if it is still running
+	 * @param process
+	 *            the process whose exit code to get
+	 * @return {@code process}'s exit code, or {@code null} if it is still
+	 *         running
 	 */
 	private static Integer getOptionalProcessExitCode(final Process process) {
 		try {
@@ -82,8 +85,8 @@ public final class ProBInstanceProvider implements Provider<ProBInstance> {
 		ProcessHandle processTuple = processProvider.get();
 		Process process = processTuple.getProcess();
 		String key = processTuple.getKey();
-		final BufferedReader stream = new BufferedReader(new InputStreamReader(
-				process.getInputStream(), Charset.forName("utf8")));
+		final BufferedReader stream = new BufferedReader(
+				new InputStreamReader(process.getInputStream(), Charset.forName("utf8")));
 
 		final Map<Class<? extends AbstractCliPattern<?>>, AbstractCliPattern<?>> cliInformation;
 		try {
@@ -100,18 +103,15 @@ public final class ProBInstanceProvider implements Provider<ProBInstance> {
 			}
 		}
 
-		Integer port = ((PortPattern) cliInformation.get(PortPattern.class))
-				.getValue();
-		Long userInterruptReference = ((InterruptRefPattern) cliInformation
-				.get(InterruptRefPattern.class)).getValue();
+		Integer port = ((PortPattern) cliInformation.get(PortPattern.class)).getValue();
+		Long userInterruptReference = ((InterruptRefPattern) cliInformation.get(InterruptRefPattern.class)).getValue();
 
 		ProBConnection connection = new ProBConnection(key, port);
 
 		try {
 			processCounter.incrementAndGet();
 			connection.connect();
-			ProBInstance cli = new ProBInstance(process, stream,
-					userInterruptReference, connection, home, osInfo,
+			ProBInstance cli = new ProBInstance(process, stream, userInterruptReference, connection, home, osInfo,
 					processCounter);
 			processes.add(new WeakReference<>(cli));
 			return cli;
@@ -135,7 +135,8 @@ public final class ProBInstanceProvider implements Provider<ProBInstance> {
 		return pattern;
 	}
 
-	private static void analyseStdout(final BufferedReader input, final Collection<? extends AbstractCliPattern<?>> patterns) {
+	private static void analyseStdout(final BufferedReader input,
+			final Collection<? extends AbstractCliPattern<?>> patterns) {
 		final List<AbstractCliPattern<?>> patternsList = new ArrayList<>(patterns);
 		try {
 			String line;

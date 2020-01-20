@@ -24,7 +24,8 @@ import org.slf4j.LoggerFactory;
 @Singleton
 public final class Installer {
 	private static final String CLI_BINARIES_RESOURCE_PREFIX = "binaries/";
-	public static final Path DEFAULT_HOME = Paths.get(System.getProperty("user.home"), ".prob", "prob2-" + ProBCliStarter.getVersion());
+	public static final Path DEFAULT_HOME = Paths.get(System.getProperty("user.home"), ".prob",
+			"prob2-" + ProBCliStarter.getVersion());
 	private static final Path LOCK_FILE_PATH = DEFAULT_HOME.resolve("installer.lock");
 	private static final Logger logger = LoggerFactory.getLogger(Installer.class);
 	private final OsSpecificInfo osInfo;
@@ -37,16 +38,20 @@ public final class Installer {
 	/**
 	 * Set or clear the executable bits of the given path.
 	 *
-	 * @param path the path of the file to make (non-)executable
-	 * @param executable whether the file should be executable
+	 * @param path
+	 *            the path of the file to make (non-)executable
+	 * @param executable
+	 *            whether the file should be executable
 	 */
 	private static void setExecutable(final Path path, final boolean executable) throws IOException {
 		logger.trace("Attempting to set executable status of {} to {}", path, executable);
 		try {
-			final Set<PosixFilePermission> perms = new HashSet<>(Files.readAttributes(path, PosixFileAttributes.class).permissions());
+			final Set<PosixFilePermission> perms = new HashSet<>(
+					Files.readAttributes(path, PosixFileAttributes.class).permissions());
 			final PosixFileAttributeView view = Files.getFileAttributeView(path, PosixFileAttributeView.class);
 			if (view == null) {
-				// If the PosixFileAttributeView is not available, we're probably on Windows, so nothing needs to be done
+				// If the PosixFileAttributeView is not available, we're
+				// probably on Windows, so nothing needs to be done
 				logger.info("Could not get POSIX attribute view for {} (this is usually not an error)", path);
 				return;
 			}
@@ -61,7 +66,8 @@ public final class Installer {
 			}
 			view.setPermissions(perms);
 		} catch (UnsupportedOperationException e) {
-			// If POSIX attributes are unsupported, we're probably on Windows, so nothing needs to be done
+			// If POSIX attributes are unsupported, we're probably on Windows,
+			// so nothing needs to be done
 			logger.info("Could not set executable status of {} (this is usually not an error)", path, e);
 		}
 	}
@@ -71,7 +77,8 @@ public final class Installer {
 	 */
 	private void installProbcli() throws IOException {
 		logger.trace("Installing probcli");
-		try (final InputStream is = this.getClass().getResourceAsStream(CLI_BINARIES_RESOURCE_PREFIX + "probcli_" + osInfo.getDirName() + ".zip")) {
+		try (final InputStream is = this.getClass()
+				.getResourceAsStream(CLI_BINARIES_RESOURCE_PREFIX + "probcli_" + osInfo.getDirName() + ".zip")) {
 			FileHandler.extractZip(is, DEFAULT_HOME);
 		}
 		logger.trace("Installed probcli");
@@ -86,14 +93,15 @@ public final class Installer {
 		final String cspmfName;
 		if (osInfo.getDirName().startsWith("win")) {
 			final String bits = "win32".equals(osInfo.getDirName()) ? "32" : "64";
-			try (final InputStream is = this.getClass().getResourceAsStream(CLI_BINARIES_RESOURCE_PREFIX + "windowslib" + bits + ".zip")) {
+			try (final InputStream is = this.getClass()
+					.getResourceAsStream(CLI_BINARIES_RESOURCE_PREFIX + "windowslib" + bits + ".zip")) {
 				FileHandler.extractZip(is, DEFAULT_HOME);
 			}
 			cspmfName = "windows-cspmf.exe";
 		} else {
 			cspmfName = osInfo.getDirName() + "-cspmf";
 		}
-		
+
 		try (final InputStream is = this.getClass().getResourceAsStream(CLI_BINARIES_RESOURCE_PREFIX + cspmfName)) {
 			Files.copy(is, outcspmf, StandardCopyOption.REPLACE_EXISTING);
 		}
@@ -111,10 +119,8 @@ public final class Installer {
 		}
 
 		logger.info("Attempting to install CLI binaries");
-		try (
-			final FileChannel lockFileChannel = FileChannel.open(LOCK_FILE_PATH, StandardOpenOption.WRITE, StandardOpenOption.CREATE);
-			final FileLock lock = lockFileChannel.lock();
-		) {
+		try (final FileChannel lockFileChannel = FileChannel.open(LOCK_FILE_PATH, StandardOpenOption.WRITE,
+				StandardOpenOption.CREATE); final FileLock lock = lockFileChannel.lock();) {
 			logger.debug("Acquired installer lock file");
 			installProbcli();
 			installCspmf();

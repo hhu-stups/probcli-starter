@@ -24,7 +24,7 @@ public class PrologProcessProvider implements Provider<ProcessHandle> {
 					process.destroy();
 				}
 			}
-		}, "Prolog Process Destroyer"));
+		} , "Prolog Process Destroyer"));
 	}
 
 	private final String debuggingKey;
@@ -37,8 +37,8 @@ public class PrologProcessProvider implements Provider<ProcessHandle> {
 	}
 
 	@Inject
-	public PrologProcessProvider(final OsSpecificInfo osInfo,
-			@DebuggingKey final String debuggingKey, @Home final String path) {
+	public PrologProcessProvider(final OsSpecificInfo osInfo, @DebuggingKey final String debuggingKey,
+			@Home final String path) {
 		this.osInfo = osInfo;
 		this.debuggingKey = debuggingKey;
 		// Create ProB home directory if necessary.
@@ -63,8 +63,7 @@ public class PrologProcessProvider implements Provider<ProcessHandle> {
 			prologProcess = pb.start();
 			logger.debug("Cli started");
 		} catch (IOException e) {
-			String msg = "Problem while starting up ProB CLI. Tried to execute: "
-					+ executable;
+			String msg = "Problem while starting up ProB CLI. Tried to execute: " + executable;
 			logger.error(msg, e);
 			return null;
 		}

@@ -27,8 +27,7 @@ public class ProBConnection {
 
 	@Override
 	public String toString() {
-		return MoreObjects.toStringHelper(ProBConnection.class).add("key", key)
-				.add("port", port).toString();
+		return MoreObjects.toStringHelper(ProBConnection.class).add("key", key).add("port", port).toString();
 	}
 
 	public void connect() throws IOException {
