@@ -117,8 +117,8 @@ public class ProBCliStarter {
 				+ connection.getPort() + "\n";
 		byte[] messageAsBytes = message.getBytes();
 		os.write(messageAsBytes, 0, messageAsBytes.length);
+		os.flush();
 		os.close();
-		
 
 		System.out.println("Provide Address: " + this.server.getInetAddress().getHostAddress());
 		System.out.println("Provide Port: " + connection.getPort());
