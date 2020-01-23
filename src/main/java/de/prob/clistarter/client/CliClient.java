@@ -42,15 +42,12 @@ public class CliClient {
 	}
 
 	private String readFromCli() {
-		while (true) {
-			try {
-				String result = readAnswer(cliSocket);
-				// System.out.println("Receive result: " + result);
-				return result;
-			} catch (IOException e) {
-				logger.error(e.getMessage());
-				return "";
-			}
+		try {
+			String result = readAnswer(cliSocket);
+			return result;
+		} catch (IOException e) {
+			logger.error(e.getMessage());
+			return "";
 		}
 	}
 
@@ -88,35 +85,22 @@ public class CliClient {
 				done = true;
 			}
 		}
-
 		return result.length() > 0 ? result.toString() : null;
 	}
 
 	private void readKeyAndPort() {
 		int cliPort = 0;
 		String cliAddress = "";
-		while (true) {
-			try {
-				BufferedReader br = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-				while (br.ready()) {
-					String[] str = br.readLine().split(" ");
-					String prefix = str[0];
-					if ("Address:".equals(prefix)) {
-						cliAddress = socket.getInetAddress().getHostAddress();
-					} else if ("Port:".equals(prefix)) {
-						cliPort = Integer.parseInt(str[1]);
-						cliSocket = new Socket(cliAddress, cliPort);
-						System.out.println("Connected with CLI socket: " + cliAddress + ", Port: " + cliPort);
-						return;
-					}
-				}
-			} catch (UnknownHostException e1) {
-				logger.error("Host unknown: ", e1);
-				return;
-			} catch (IOException e2) {
-				logger.error("", e2);
-				return;
-			}
+		try {
+			String answer = readAnswer(socket);
+			String[] str = answer.split(",")[1].split(" ");
+			cliPort = Integer.parseInt(str[1]);
+			cliSocket = new Socket(cliAddress, cliPort);
+			System.out.println("Connected with CLI socket: " + cliAddress + ", Port: " + cliPort);
+		} catch (UnknownHostException e1) {
+			logger.error("Host unknown: ", e1);
+		} catch (IOException e2) {
+			logger.error("", e2);
 		}
 	}
 

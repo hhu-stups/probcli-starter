@@ -113,10 +113,12 @@ public class ProBCliStarter {
 		DataOutputStream os = new DataOutputStream(client.getOutputStream());
 		ProBInstance instance = getInjector().getInstance(ProBInstance.class);
 		ProBConnection connection = instance.getConnection();
-
-		os.writeBytes("Address: " + this.server.getInetAddress().getHostAddress() + "\n" + "Port: "
-				+ connection.getPort() + "\n");
-		os.flush();
+		String message = "Address: " + this.server.getInetAddress().getHostAddress() + "," + "Port: "
+				+ connection.getPort() + "\n";
+		byte[] messageAsBytes = message.getBytes();
+		os.write(messageAsBytes, 0, messageAsBytes.length);
+		os.close();
+		
 
 		System.out.println("Provide Address: " + this.server.getInetAddress().getHostAddress());
 		System.out.println("Provide Port: " + connection.getPort());
