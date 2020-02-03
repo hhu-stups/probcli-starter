@@ -3,6 +3,8 @@ package de.prob.clistarter.client;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import de.prob.clistarter.ProBConnection;
+
 import javax.inject.Inject;
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
@@ -13,15 +15,12 @@ import java.net.UnknownHostException;
 
 public class CliClient {
 
-	private static final int BUFFER_SIZE = 1024;
-
 	private static final Logger logger = LoggerFactory.getLogger(CliClient.class);
 
 	private Socket socket = null;
+	
+	private ProBConnection connection;
 
-	private Socket cliSocket = null;
-
-	private volatile boolean busy;
 
 	@Inject
 	public CliClient() {
@@ -41,66 +40,34 @@ public class CliClient {
 
 	}
 
-	private String readFromCli() {
-		try {
-			String result = readAnswer(cliSocket);
-			return result;
-		} catch (IOException e) {
-			logger.error(e.getMessage());
-			return "";
-		}
-	}
-
-	protected String readAnswer(Socket cliSocket) throws IOException {
-		final StringBuilder result = new StringBuilder();
-		final byte[] buffer = new byte[BUFFER_SIZE];
-		boolean done = false;
-
-		while (!done) {
-			/*
-			 * It might be necessary to check for inputStream.available() > 0.
-			 * Or add some kind of timer to prevent the thread blocks forever.
-			 * See task#102
-			 */
-			busy = true;
-			int count = cliSocket.getInputStream().read(buffer);
-			busy = false; // as soon as we read something, we know that the
-			// Prolog has been processed and we do not want to
-			// allow interruption
-			if (count > 0) {
-				final byte length = 1;
-
-				// check for end of transmission (i.e. last byte is 1)
-				if (buffer[count - length] == 1) {
-					done = true;
-					count--; // remove end of transmission marker
-				}
-
-				// trim white spaces and append
-				// instead of removing the last byte trim is used, because on
-				// windows prob uses \r\n as new line.
-				String s = new String(buffer, 0, count, "utf8");
-				result.append(s.replace("\r", "").replace("\n", ""));
-			} else {
-				done = true;
-			}
-		}
-		return result.length() > 0 ? result.toString() : null;
-	}
-
 	private void readKeyAndPort() {
 		int cliPort = 0;
+		String key = "";
 		String cliAddress = "";
-		try {
-			String answer = readAnswer(socket);
-			String[] str = answer.split(",")[1].split(" ");
-			cliPort = Integer.parseInt(str[1]);
-			cliSocket = new Socket(cliAddress, cliPort);
-			System.out.println("Connected with CLI socket: " + cliAddress + ", Port: " + cliPort);
-		} catch (UnknownHostException e1) {
-			logger.error("Host unknown: ", e1);
-		} catch (IOException e2) {
-			logger.error("", e2);
+		while (true) {
+			try {
+				BufferedReader br = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+				while (br.ready()) {
+					String[] str = br.readLine().split(" ");
+					String prefix = str[0];
+					if ("Key:".equals(prefix)) {
+						key = str[1];
+					} else if ("Port:".equals(prefix)) {
+						cliAddress = socket.getInetAddress().getHostAddress();
+						cliPort = Integer.parseInt(str[1]);
+						connection = new ProBConnection(key, cliPort);
+						connection.connect(cliAddress);
+						System.out.println("Connected with CLI socket: " + key + ", Port: " + cliPort);
+						return;
+					}
+				}
+			} catch (UnknownHostException e1) {
+				logger.error("Host unknown: ", e1);
+				return;
+			} catch (IOException e2) {
+				logger.error("", e2);
+				return;
+			}
 		}
 	}
 
@@ -134,7 +101,6 @@ public class CliClient {
 			streamOut.write(message.getBytes());
 			streamOut.writeBytes("\n");
 			socket.getOutputStream().close();
-			cliSocket.getOutputStream().close();
 		} catch (IOException e) {
 			logger.error(e.getMessage());
 		}
@@ -142,10 +108,7 @@ public class CliClient {
 
 	public String sendMessage(String message) {
 		try {
-			DataOutputStream streamOut = new DataOutputStream(cliSocket.getOutputStream());
-			streamOut.write(message.getBytes());
-			streamOut.writeBytes("\n");
-			String result = readFromCli();
+			String result = connection.send(message);
 			return result;
 		} catch (IOException e) {
 			logger.error(e.getMessage());
@@ -153,7 +116,5 @@ public class CliClient {
 		return "";
 	}
 
-	public boolean isBusy() {
-		return busy;
-	}
+
 }
