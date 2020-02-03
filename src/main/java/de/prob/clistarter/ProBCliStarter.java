@@ -117,7 +117,7 @@ public class ProBCliStarter {
 		os.writeBytes("Key: " + connection.getKey() + "\n" + "Port: " + connection.getPort() + "\n");
 		os.flush();
 
-		System.out.println("Provide Address: " + this.server.getInetAddress().getHostAddress());
+		System.out.println("Provide Key: " + connection.getKey());
 		System.out.println("Provide Port: " + connection.getPort());
 		return instance;
 	}
