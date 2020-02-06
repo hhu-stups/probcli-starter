@@ -7,6 +7,7 @@ import com.google.inject.Stage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -88,9 +89,9 @@ public class ProBCliStarter {
 		try {
 			ProBInstance instance = null;
 			while (true) {
-				String message = MessageReader.read(client);
-				if (!message.isEmpty()) {
-					switch (message) {
+				BufferedReader br = new BufferedReader(new InputStreamReader(client.getInputStream()));
+				String message = br.readLine();
+				switch (message) {
 					case "Request CLI":
 						instance = handleCLIRequest(client);
 						break;
@@ -100,7 +101,6 @@ public class ProBCliStarter {
 					case "Interrupt CLI":
 						handleCLIInterrupt(instance);
 						break;
-					}
 				}
 			}
 

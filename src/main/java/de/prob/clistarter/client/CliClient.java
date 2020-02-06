@@ -7,11 +7,13 @@ import de.prob.clistarter.ProBConnection;
 
 import javax.inject.Inject;
 import java.io.BufferedReader;
-import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.nio.charset.StandardCharsets;
 
 public class CliClient {
 
@@ -44,39 +46,34 @@ public class CliClient {
 		int cliPort = 0;
 		String key = "";
 		String cliAddress = "";
-		while (true) {
-			try {
-				BufferedReader br = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-				while (br.ready()) {
-					String[] str = br.readLine().split(" ");
-					String prefix = str[0];
-					if ("Key:".equals(prefix)) {
-						key = str[1];
-					} else if ("Port:".equals(prefix)) {
-						cliAddress = socket.getInetAddress().getHostAddress();
-						cliPort = Integer.parseInt(str[1]);
-						connection = new ProBConnection(key, cliPort);
-						connection.connect(cliAddress);
-						System.out.println("Connected with CLI socket: " + key + ", Port: " + cliPort);
-						return;
-					}
-				}
-			} catch (UnknownHostException e1) {
-				logger.error("Host unknown: ", e1);
-				return;
-			} catch (IOException e2) {
-				logger.error("", e2);
-				return;
-			}
+		
+		try {
+			BufferedReader br = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+			String[] str = br.readLine().split(" ");
+			key = str[1];
+			
+			str = br.readLine().split(" ");
+			cliAddress = socket.getInetAddress().getHostAddress();
+			cliPort = Integer.parseInt(str[1]);
+			connection = new ProBConnection(key, cliPort);
+			connection.connect(cliAddress);
+			System.out.println("Connected with CLI socket: " + key + ", Port: " + cliPort);
+		} catch (UnknownHostException e1) {
+			logger.error("Host unknown: ", e1);
+			return;
+		} catch (IOException e2) {
+			logger.error("", e2);
+			return;
 		}
+
 	}
 
 	private void requestCLI() {
 		try {
 			String message = "Request CLI";
-			DataOutputStream streamOut = new DataOutputStream(socket.getOutputStream());
-			streamOut.write(message.getBytes());
-			streamOut.writeBytes("\n");
+			PrintWriter streamOut = new PrintWriter(new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8));
+			streamOut.println(message);
+			streamOut.flush();
 			readKeyAndPort();
 		} catch (IOException e) {
 			logger.error(e.getMessage());
@@ -86,9 +83,9 @@ public class CliClient {
 	public void interruptCLI() {
 		try {
 			String message = "Interrupt CLI";
-			DataOutputStream streamOut = new DataOutputStream(socket.getOutputStream());
-			streamOut.write(message.getBytes());
-			streamOut.writeBytes("\n");
+			PrintWriter streamOut = new PrintWriter(new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8));
+			streamOut.println(message);
+			streamOut.flush();
 		} catch (IOException e) {
 			logger.error(e.getMessage());
 		}
@@ -97,9 +94,9 @@ public class CliClient {
 	public void shutdownCLI() {
 		try {
 			String message = "Shutdown CLI";
-			DataOutputStream streamOut = new DataOutputStream(socket.getOutputStream());
-			streamOut.write(message.getBytes());
-			streamOut.writeBytes("\n");
+			PrintWriter streamOut = new PrintWriter(new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8));
+			streamOut.println(message);
+			streamOut.flush();
 			socket.getOutputStream().close();
 		} catch (IOException e) {
 			logger.error(e.getMessage());
