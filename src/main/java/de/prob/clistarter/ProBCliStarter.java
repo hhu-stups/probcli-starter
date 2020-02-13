@@ -91,16 +91,18 @@ public class ProBCliStarter {
 			while (true) {
 				BufferedReader br = new BufferedReader(new InputStreamReader(client.getInputStream()));
 				String message = br.readLine();
-				switch (message) {
-					case "Request CLI":
-						instance = handleCLIRequest(client);
-						break;
-					case "Shutdown CLI":
-						handleCLIShutdown(instance);
-						return;
-					case "Interrupt CLI":
-						handleCLIInterrupt(instance);
-						break;
+				if(message != null) {
+					switch (message) {
+						case "Request CLI":
+							instance = handleCLIRequest(client);
+							break;
+						case "Shutdown CLI":
+							handleCLIShutdown(instance);
+							return;
+						case "Interrupt CLI":
+							handleCLIInterrupt(instance);
+							break;
+					}
 				}
 			}
 
@@ -113,7 +115,6 @@ public class ProBCliStarter {
 		DataOutputStream os = new DataOutputStream(client.getOutputStream());
 		ProBInstance instance = getInjector().getInstance(ProBInstance.class);
 		ProBConnection connection = instance.getConnection();
-
 		os.writeBytes("Key: " + connection.getKey() + "\n" + "Port: " + connection.getPort() + "\n");
 		os.flush();
 
