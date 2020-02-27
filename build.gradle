@@ -2,7 +2,7 @@ plugins {
 	id "de.undercouch.download" version "3.4.3"
 }
 
-apply plugin: 'java'
+apply plugin: 'java-library'
 apply plugin: 'application'
 apply plugin: 'eclipse'
 apply plugin: 'idea'
@@ -39,13 +39,15 @@ sourceSets.main.java.srcDirs = ['src/main/java']
 mainClassName = "de.prob.clistarter.ProBCliStarter"
 
 dependencies {
-	compile group: "com.google.inject", name: "guice", version: "4.2.2" // Apache License 2.0
-	compile group: 'org.zeromq', name: 'jeromq', version: '0.5.2' // Mozilla Public License Version 2.0
-	
 	// Logging
-	compile group: "ch.qos.logback", name: "logback-core", version: "1.2.3" // Eclipse Public License 1.0
-	compile group: "ch.qos.logback", name: "logback-classic", version: "1.2.3" // Eclipse Public License 1.0
-	compile group: "org.slf4j", name: "slf4j-api", version: "1.7.25" // MIT License
+	api group: "ch.qos.logback", name: "logback-core", version: "1.2.3" // Eclipse Public License 1.0
+	api group: "ch.qos.logback", name: "logback-classic", version: "1.2.3" // Eclipse Public License 1.0
+	api group: "org.slf4j", name: "slf4j-api", version: "1.7.25" // MIT License
+	
+	api group: "com.google.inject", name: "guice", version: "4.2.2" // Apache License 2.0
+	
+	implementation group: 'org.zeromq', name: 'jeromq', version: '0.5.2' // Mozilla Public License Version 2.0
+	testImplementation group: "junit", name: "junit", version: "4.13" // Eclipse Public License 1.0
 }
 
 if (project.hasProperty("probHome")) {
