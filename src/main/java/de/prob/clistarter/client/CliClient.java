@@ -65,11 +65,15 @@ public class CliClient {
 	public void interruptCLI() {
 		socket.send("Interrupt CLI:" + cliPort);
 		System.out.println("Send Interrupt CLI: " + cliPort);
+		//Client must receive the answer from the server, otherwise the next request leads to an exception
+		socket.recvStr();
 	}
 
 	public void shutdownCLI() {
 		socket.send("Shutdown CLI:" + cliPort);
 		System.out.println("Send Shutdown CLI: " + cliPort);
+		//Client must receive the answer from the server, otherwise the next request leads to an exception
+		socket.recvStr();
 		context.close();
 	}
 
