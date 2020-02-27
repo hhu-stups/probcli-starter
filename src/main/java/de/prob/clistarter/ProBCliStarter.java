@@ -114,12 +114,14 @@ public class ProBCliStarter {
 	}
 
 	private void handleCLIShutdown(ProBInstance instance) {
+		//Server must answer, otherwise the next reply is sent to the wrong client
 		serverSocket.send("OK");
 		instance.shutdown();
 		System.out.println("Shutdown CLI: " + instance);
 	}
 
 	private void handleCLIInterrupt(ProBInstance instance) {
+		//Server must answer, otherwise the next reply is sent to the wrong client
 		serverSocket.send("OK");
 		instance.sendInterrupt();
 		System.out.println("Interrupt CLI: " + instance);
