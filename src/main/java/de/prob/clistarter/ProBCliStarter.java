@@ -6,17 +6,18 @@ import com.google.inject.Singleton;
 import com.google.inject.Stage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.zeromq.SocketType;
+import org.zeromq.ZContext;
+import org.zeromq.ZMQ.Socket;
 
-import java.io.BufferedReader;
-import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.io.UncheckedIOException;
-import java.net.ServerSocket;
-import java.net.Socket;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
 
 @Singleton
@@ -27,10 +28,12 @@ public class ProBCliStarter {
 	private static final Logger logger = LoggerFactory.getLogger(ProBCliStarter.class);
 
 	private static final Properties buildProperties;
-
-	private final ServerSocket server;
-
-	private Thread thread;
+	
+	private final ZContext context;
+	
+	private final Map<Integer, ProBInstance> instances;
+	
+	private Socket serverSocket;
 
 	static {
 		buildProperties = new Properties();
@@ -46,6 +49,21 @@ public class ProBCliStarter {
 			}
 		}
 	}
+	
+	public ProBCliStarter() {
+		this.context = new ZContext();
+		this.instances = new HashMap<>();
+		Thread thread = new Thread(() -> {
+			serverSocket = context.createSocket(SocketType.REP);
+			serverSocket.bind("tcp://*:11312");
+			while(!Thread.currentThread().isInterrupted()) {
+				handleRequestsOfClient();
+			}
+			context.close();
+			System.out.println("CLI Server terminated");
+		});
+		thread.start();
+	}
 
 	public static synchronized Injector getInjector() {
 		if (injector == null) {
@@ -54,55 +72,30 @@ public class ProBCliStarter {
 		return injector;
 	}
 
-	public ProBCliStarter() throws IOException {
-		this.server = new ServerSocket(11312);
-	}
-
-	public void start() {
-		thread = new Thread(() -> {
-			try {
-				if (thread.isInterrupted()) {
-					return;
-				}
-				while (true) {
-					Socket client = server.accept();
-					Thread thread = new Thread(() -> handleRequestsOfClient(client));
-					thread.start();
-				}
-			} catch (IOException e) {
-				logger.error(e.getMessage());
-			}
-		});
-		thread.start();
-	}
-
-	public void shutdown() {
+	private void handleRequestsOfClient() {
 		try {
-			server.close();
-		} catch (IOException e) {
-			logger.error(e.getMessage());
-		}
-		thread.interrupt();
-	}
-
-	private void handleRequestsOfClient(Socket client) {
-		try {
-			ProBInstance instance = null;
 			while (true) {
-				BufferedReader br = new BufferedReader(new InputStreamReader(client.getInputStream()));
-				String message = br.readLine();
-				if(message != null) {
-					switch (message) {
-						case "Request CLI":
-							instance = handleCLIRequest(client);
-							break;
-						case "Shutdown CLI":
-							handleCLIShutdown(instance);
-							return;
-						case "Interrupt CLI":
-							handleCLIInterrupt(instance);
-							break;
+				String message = serverSocket.recvStr();
+				String[] messageSplitted = message.split(":");
+				String messagePrefix = messageSplitted[0];
+				switch (messagePrefix) {
+					case "Request CLI":
+						handleCLIRequest();
+						break;
+					case "Shutdown CLI": {
+						int port = Integer.parseInt(messageSplitted[messageSplitted.length - 1]);
+						ProBInstance instance = instances.get(port);
+						handleCLIShutdown(instance);
+						return;
 					}
+					case "Interrupt CLI": {
+						int port = Integer.parseInt(messageSplitted[messageSplitted.length - 1]);
+						ProBInstance instance = instances.get(port);
+						handleCLIInterrupt(instance);
+						break;
+					}
+					default:
+						break;
 				}
 			}
 
@@ -111,24 +104,23 @@ public class ProBCliStarter {
 		}
 	}
 
-	private ProBInstance handleCLIRequest(Socket client) throws IOException {
-		DataOutputStream os = new DataOutputStream(client.getOutputStream());
+	private void handleCLIRequest() throws IOException {
 		ProBInstance instance = getInjector().getInstance(ProBInstance.class);
 		ProBConnection connection = instance.getConnection();
-		os.writeBytes("Key: " + connection.getKey() + "\n" + "Port: " + connection.getPort() + "\n");
-		os.flush();
-
+		serverSocket.send("Key: " + connection.getKey() + "\n" + "Port: " + connection.getPort());
 		System.out.println("Provide Key: " + connection.getKey());
 		System.out.println("Provide Port: " + connection.getPort());
-		return instance;
+		instances.put(connection.getPort(), instance);
 	}
 
 	private void handleCLIShutdown(ProBInstance instance) {
+		serverSocket.send("OK");
 		instance.shutdown();
 		System.out.println("Shutdown CLI: " + instance);
 	}
 
 	private void handleCLIInterrupt(ProBInstance instance) {
+		serverSocket.send("OK");
 		instance.sendInterrupt();
 		System.out.println("Interrupt CLI: " + instance);
 	}
@@ -138,14 +130,7 @@ public class ProBCliStarter {
 	}
 
 	public static void main(String[] args) {
-		ProBCliStarter cliStarter;
-		try {
-			cliStarter = new ProBCliStarter();
-		} catch (IOException e) {
-			logger.error(e.getMessage());
-			return;
-		}
-		cliStarter.start();
+		new ProBCliStarter();
 	}
 
 }

@@ -7,7 +7,7 @@ apply plugin: 'application'
 apply plugin: 'eclipse'
 apply plugin: 'idea'
 
-
+project.group = 'de.hhu.stups'
 project.version = '4.0.0-SNAPSHOT'
 
 sourceCompatibility = 1.8
@@ -40,6 +40,7 @@ mainClassName = "de.prob.clistarter.ProBCliStarter"
 
 dependencies {
 	compile group: "com.google.inject", name: "guice", version: "4.2.2" // Apache License 2.0
+	compile group: 'org.zeromq', name: 'jeromq', version: '0.5.2' // Mozilla Public License Version 2.0
 	
 	// Logging
 	compile group: "ch.qos.logback", name: "logback-core", version: "1.2.3" // Eclipse Public License 1.0
