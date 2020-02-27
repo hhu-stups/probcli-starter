@@ -45,16 +45,13 @@ public class CliClient {
 		System.out.println("Establishing connection. Please wait ...");
 		System.out.println("Connected: " + serverName + ", Port:" + serverPort);
 		socket.send("Request CLI");
-		System.out.println("A");
 		String msg = socket.recvStr();
 		try {
-			System.out.println("B");
 			String[] lines = msg.split("\n");
 			String key = lines[0].split(" ")[1];
 			cliPort = Integer.parseInt(lines[1].split(" ")[1]);
 			connection = new ProBConnection(key, cliPort);
 			connection.connect(serverName);
-			System.out.println("C");
 			System.out.println("Connected with CLI socket: " + key + ", Port: " + cliPort);
 		} catch (UnknownHostException e1) {
 			logger.error("Host unknown: ", e1);
