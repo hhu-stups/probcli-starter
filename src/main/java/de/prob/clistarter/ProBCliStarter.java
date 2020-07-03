@@ -28,6 +28,8 @@ public class ProBCliStarter {
 	private static final Logger logger = LoggerFactory.getLogger(ProBCliStarter.class);
 
 	private static final Properties buildProperties;
+
+	private static final ProBCliStarter cliStarter = new ProBCliStarter();
 	
 	private final ZContext context;
 	
@@ -53,6 +55,9 @@ public class ProBCliStarter {
 	public ProBCliStarter() {
 		this.context = new ZContext();
 		this.instances = new HashMap<>();
+	}
+
+	public void start() {
 		Thread thread = new Thread(() -> {
 			serverSocket = context.createSocket(SocketType.REP);
 			serverSocket.bind("tcp://*:11312");
@@ -131,10 +136,12 @@ public class ProBCliStarter {
 		return buildProperties.getProperty("version");
 	}
 
-
+	public static void startCli() {
+		cliStarter.start();
+	}
 
 	public static void main(String[] args) {
-		new ProBCliStarter();
+		startCli();
 	}
 
 }
