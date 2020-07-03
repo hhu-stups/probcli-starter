@@ -77,6 +77,14 @@ public class CliClient {
 		context.close();
 	}
 
+	public void shutdownCliStarter() {
+		socket.send("Shutdown CLI Starter:" + cliPort);
+		System.out.println("Send Shutdown CLI Starter: " + cliPort);
+		//Client must receive the answer from the server, otherwise the next request leads to an exception
+		socket.recvStr();
+		context.close();
+	}
+
 	public String sendMessage(String message) {
 		try {
 			String result = connection.send(message);

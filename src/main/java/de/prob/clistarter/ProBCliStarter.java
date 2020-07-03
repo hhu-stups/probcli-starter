@@ -20,6 +20,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
+import de.prob.clistarter.client.CliClient;
+
 @Singleton
 public class ProBCliStarter {
 
@@ -36,6 +38,8 @@ public class ProBCliStarter {
 	private final Map<Integer, ProBInstance> instances;
 	
 	private Socket serverSocket;
+
+	private Thread thread;
 
 	static {
 		buildProperties = new Properties();
@@ -58,16 +62,22 @@ public class ProBCliStarter {
 	}
 
 	public void start() {
-		Thread thread = new Thread(() -> {
+		thread = new Thread(() -> {
 			serverSocket = context.createSocket(SocketType.REP);
 			serverSocket.bind("tcp://*:11312");
 			while(!Thread.currentThread().isInterrupted()) {
 				handleRequestsOfClient();
 			}
-			context.close();
 			System.out.println("CLI Server terminated");
+			System.exit(0);
 		});
 		thread.start();
+	}
+
+	public void stop() {
+		CliClient client = new CliClient();
+		client.connect("localhost", 11312);
+		client.shutdownCliStarter();
 	}
 
 	public static synchronized Injector getInjector() {
@@ -98,6 +108,13 @@ public class ProBCliStarter {
 						ProBInstance instance = instances.get(port);
 						handleCLIInterrupt(instance);
 						break;
+					}
+					case "Shutdown CLI Starter": {
+						int port = Integer.parseInt(messageSplitted[messageSplitted.length - 1]);
+						ProBInstance instance = instances.get(port);
+						handleCLIShutdown(instance);
+						thread.interrupt();
+						return;
 					}
 					default:
 						break;
@@ -139,6 +156,11 @@ public class ProBCliStarter {
 	public static void startCli() {
 		cliStarter.start();
 	}
+
+	public static void stopCli() {
+		cliStarter.stop();
+	}
+
 
 	public static void main(String[] args) {
 		startCli();
